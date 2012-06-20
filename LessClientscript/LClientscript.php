@@ -38,7 +38,7 @@ class LClientscript extends CClientScript{
         $assetName = md5($assetName);
 
         //store less in assets folder
-        $assetCssOrig = Yii::app()->getAssetManager()->basePath . DIRECTORY_SEPARATOR . 'less'. DIRECTORY_SEPARATOR . $assetName . '.css';
+        $assetCssOrig = Yii::app()->getAssetManager()->basePath . DIRECTORY_SEPARATOR . $assetName . '.css';
 
         $parsed = false;
        // $lessc = null;
