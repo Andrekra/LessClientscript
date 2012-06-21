@@ -18,7 +18,7 @@ class LClientscript extends CClientScript{
             $url = $this->compileLess($url, $this->caching);
         }
         //run the parent method to parse the less/css file like Yii normally does.
-        parent::registerCssFile($url, $media);
+        return parent::registerCssFile($url, $media);
     }
     /**
      * Compliles the input CSS file. If the $cache is setted, the output will be chached by it.
