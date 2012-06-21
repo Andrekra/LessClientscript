@@ -31,8 +31,9 @@ class LClientscript extends CClientScript{
      */
     protected function compileLess($less, $returnString = true)
     {
+		//webroot of the application
         if (is_null(self::$staticPath))
-            self::$staticPath = str_replace('/protected', '', dirname(Yii::app()->basePath)) . '/';
+            self::$staticPath = Yii::getPathOfAlias('webroot') . DIRECTORY_SEPARATOR;
 
         $assetName = str_replace(DIRECTORY_SEPARATOR, '.', str_replace(self::$staticPath, '', $less));
         $assetName = md5($assetName);
@@ -46,9 +47,17 @@ class LClientscript extends CClientScript{
         if($this->caching && is_file($assetCssOrig)){
             Yii::trace('used cache set by global: ' . $assetName); // TRACE
         } else {
-            Yii::trace('Less parsed by no cache: ' . $less); // TRACE
-            $this->parseLess(file_get_contents($less), $parsed);
-            $this->putIntoFile($assetCssOrig, $parsed);
+            
+            $sourcepath = self::$staticPath . str_replace(self::$staticPath, '', $less);
+            if (file_exists($sourcepath))
+            {
+				Yii::trace('Less parsed by no cache: ' . $less); // TRACE
+                $this->parseLess(file_get_contents($sourcepath), $parsed);
+                $this->putIntoFile($assetCssOrig, $parsed);
+            }
+            else {
+                throw new CException(__CLASS__.': Less stylesheet not found: '. $sourcepath);
+            }
         }
 
 
@@ -75,6 +84,7 @@ class LClientscript extends CClientScript{
             require_once(dirname(__FILE__) . DIRECTORY_SEPARATOR . 'include'. DIRECTORY_SEPARATOR . 'lessc.inc.php');
             $lessc = new lessc();
             $lessc->setFormatter("compressed");
+			$lessc->importDir = dirname($input); // Set the correct context.
             ob_start();
             $parsed = trim($lessc->parse($input));
             ob_end_clean();
