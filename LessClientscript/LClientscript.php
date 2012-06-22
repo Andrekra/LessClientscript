@@ -8,60 +8,51 @@
 class LClientscript extends CClientScript{
     public $caching = true; //use cached less css file if available
     public $compress = false; //compress less css to 1 line
-    protected static $staticPath = null;
 
     public function registerCssFile($url,$media='')
     {
         //if the file extension is .less, use the lessparser.
         $file_extension = end(explode('.',$url));
         if($file_extension == 'less'){
-            $url = $this->compileLess($url, $this->caching);
+            $url = $this->compileLess($url, false);
         }
-        //run the parent method to parse the less/css file like Yii normally does.
+        
+		//run the parent method to parse the less/css file like Yii normally does.
         return parent::registerCssFile($url, $media);
     }
-    /**
-     * Compliles the input CSS file. If the $cache is setted, the output will be chached by it.
-     *
-     * @param string input file path relative to the application path (e.g. '/css/test.less' if the file is /absolute/path/to/your_app/css/test.less)
-     * @param boolean cache enabled = true, disabled = false
-     * @param boolean if true, returns string, else the path of the compiled CSS file
-     *
-     * @return string file path or compiled string according to 3th param
-     */
-    protected function compileLess($less, $returnString = true)
+
+    protected function compileLess($less_input, $returnString = true)
     {
 		//webroot of the application
-        if (is_null(self::$staticPath))
-            self::$staticPath = Yii::getPathOfAlias('webroot') . DIRECTORY_SEPARATOR;
+        $basepath = Yii::getPathOfAlias('webroot') . DIRECTORY_SEPARATOR;		
+		
+		//path to assets (default /assets)
+		$assetspath = Yii::app()->getAssetManager()->basePath . DIRECTORY_SEPARATOR;
+        $assetName = md5($less_input);
 
-        $assetName = str_replace(DIRECTORY_SEPARATOR, '.', str_replace(self::$staticPath, '', $less));
-        $assetName = md5($assetName);
-
-        //store less in assets folder
-        $assetCssOrig = Yii::app()->getAssetManager()->basePath . DIRECTORY_SEPARATOR . $assetName . '.css';
+        //reference where to store the temporary css file, before sending it to registerCSSFile
+        $assetCssOrig = $assetspath . $assetName . '.css';
 
         $parsed = false;
-       // $lessc = null;
-
-        if($this->caching && is_file($assetCssOrig)){
-            Yii::trace('used cache set by global: ' . $assetName); // TRACE
-        } else {
-            
-            $sourcepath = self::$staticPath . str_replace(self::$staticPath, '', $less);
-            if (file_exists($sourcepath))
+		//only parse the file if caching is off and the file doesn't exist
+		//Todo: Perhaps a check if the content is altered (date_modified) or file size changed
+        if(!($this->caching && is_file($assetCssOrig))){  
+			//make the path absolute, but make sure basepath isn't in the url first.
+            $sourcepath = $basepath . str_replace($basepath, '', $less_input);
+            if (is_file($sourcepath))
             {
-				Yii::trace('Less parsed by no cache: ' . $less); // TRACE
-                $this->parseLess(file_get_contents($sourcepath), $parsed);
-                $this->putIntoFile($assetCssOrig, $parsed);
+				//start parsing the less file and store it in assets folder
+                if($parsed = $this->parseLess(file_get_contents($sourcepath))){
+					file_put_contents($assetCssOrig, $parsed);
+					//@chmod($assetCssOrig, 0777);
+				}                 
             }
             else {
                 throw new CException(__CLASS__.': Less stylesheet not found: '. $sourcepath);
             }
         }
 
-
-        // parsed string or file is done
+        // return the parsed css string or file
         if ($returnString) {
             return $parsed;
         } else {
@@ -69,42 +60,26 @@ class LClientscript extends CClientScript{
         }
     }
 
-    /**
-     * Parses $input file into $output
-     * @param string input less CSS
-     * @param string output parsed CSS
-     *
-     * @return boolean true if parse was successfull
-     */
-    protected function parseLess($input, &$output)
+    protected function parseLess($input)
     {
-        $parsed = null;
+        $parsed = false;
 
         try {
+			//include lessc library
             require_once(dirname(__FILE__) . DIRECTORY_SEPARATOR . 'include'. DIRECTORY_SEPARATOR . 'lessc.inc.php');
+			
+			//setup the parser
             $lessc = new lessc();
-            $lessc->setFormatter("compressed");
-			$lessc->importDir = dirname($input); // Set the correct context.
-            ob_start();
-            $parsed = trim($lessc->parse($input));
-            ob_end_clean();
+			if($this->compress){
+				$lessc->setFormatter("compressed");	
+			}            
+			$lessc->importDir = dirname($input); // Set the correct context when using @import
+            
+			//parse the file
+            $parsed = $lessc->parse($input);			
         } catch (exception $e) {
-            Yii::log(
-                'Failed to compile LessCss input, reason:' . $e->getMessage(),
-                'error',
-                __CLASS__
-            );
-            return false;
+			throw new CException(__CLASS__.': Failed to compile less file with message: '.$e->getMessage().'.');            
         }
-        $output = $parsed;
-
-        return true;
-    }
-
-    protected function putIntoFile($file, $content)
-    {
-        file_put_contents($file, $content);
-        @chmod($file, 0777);
+        return $parsed;
     }
 }
-?>
