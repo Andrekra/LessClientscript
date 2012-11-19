@@ -6,14 +6,18 @@ Copy this repo to your Yii application extension folder (default protected/exten
 
 Add the extension to your configuration
 ```php
+    ...
     'components' => array(
+        ...
         'clientScript' => array(
             'class' => 'ext.LessClientscript.LClientscript',
             'caching' => true,
             'compress' => false,
             'importDir' => array('themes/classic/less/')
         )
-)
+        ...
+    )
+    ...
 ```
 
 To call it into your view
