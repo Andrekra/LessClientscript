@@ -11,7 +11,8 @@
         'clientScript' => array(
             'class' => 'ext.LessClientscript.LClientscript',
             'caching' => true,
-            'compress' => false
+            'compress' => false,
+            'importDir' => array('themes/classic/less/')
         )
     )
   </pre>
@@ -20,8 +21,8 @@
   // SiteController.php file
   public function actionIndex()
 	{
-        Yii::app()->clientScript->registerCSSFile('/assets/css/test.less','screen');
-		$this->render('index');
+      Yii::app()->clientScript->registerCSSFile('/assets/css/test.less','screen');
+		  $this->render('index');
 	}
   </pre>
   
