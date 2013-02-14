@@ -13,7 +13,7 @@ class LClientScript extends CClientScript{
     public function registerCssFile($url, $media='')
     {
         //if the file extension is .less, use the lessparser.
-        $file_extension = end(explode('.',$url));
+		$file_extension = pathinfo($url, PATHINFO_EXTENSION);
         if($file_extension == 'less'){
             $url = $this->compileLess($url, false);
         }
